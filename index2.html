@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <section id="seccion-1">
+      <div>
+        <h2>Servicios</h2>
+        <ul id="lista-servicios">
+          <li>Cargando...</li>
+        </ul>
+      </div>
+      <div>
+        <h2>barberos</h2>
+        <ul id="lista-barberos">
+          <li>Cargando...</li>
+        </ul>
+      </div>
+    </section>
+    <section id="section-2">
+      <div>
+        <form action="" id="form-reserva">
+          <label for="">Nombre del cliente</label>
+          <input type="text" name="nombre" id="cliente_nombre" />
+          <label for="">numero telefonico</label>
+          <input type="tel" name="tlfn" id="cliente_telefono" />
+          <label for="">fecha de la cita</label>
+          <input
+            type="datetime-local"
+            name="hora-Inicial"
+            id="fecha_hora_inicio"
+          />
+          <label for="">Barbero:</label>
+          <select id="barbero_id">
+            <option value="1">Carlos</option>
+            <option value="2">Ana</option>
+          </select>
+          <label for="">Servicio</label>
+          <select id="servicio_id">
+            <option value="1">corte</option>
+            <option value="2">Barba</option>
+          </select>
+          <br />
+          <button type="submit">Reservar</button>
+        </form>
+      </div>
+    </section>
+    <section id="section-3">
+      <div>
+        <h2>Lista de reservas</h2>
+        <ul id="lista-reservas"></ul>
+        <button id="boton-recargar-reserva">cargar reservas</button>
+      </div>
+    </section>
+    <script>
+      async function cargarServicios() {
+        const respuesta = await fetch("http://127.0.0.1:8000/servicios");
+        const datos = await respuesta.json();
+        console.log(datos);
+      }
+
+      cargarServicios();
+    </script>
+  </body>
+</html>

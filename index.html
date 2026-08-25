@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Barbería - Prueba de API</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; }
+  h2 { border-bottom: 2px solid #333; padding-bottom: 6px; margin-top: 40px; }
+  form { display: flex; flex-direction: column; gap: 8px; max-width: 400px; }
+  label { font-size: 14px; font-weight: bold; }
+  input, select { padding: 6px; font-size: 14px; }
+  button { margin-top: 10px; padding: 8px; cursor: pointer; }
+  ul { list-style: none; padding: 0; }
+  li { border: 1px solid #ccc; padding: 10px; margin-bottom: 8px; border-radius: 4px; }
+  .cancelada { opacity: 0.5; text-decoration: line-through; }
+  .mensaje { padding: 10px; margin-top: 10px; border-radius: 4px; }
+  .exito { background: #d4edda; color: #155724; }
+  .error { background: #f8d7da; color: #721c24; }
+  small { color: #666; }
+</style>
+</head>
+<body>
+
+<h1>Barbería - Panel de prueba</h1>
+
+<!-- ============ SERVICIOS Y BARBEROS (solo lectura) ============ -->
+<h2>Servicios</h2>
+<ul id="lista-servicios"><li>Cargando...</li></ul>
+
+<h2>Barberos</h2>
+<ul id="lista-barberos"><li>Cargando...</li></ul>
+
+<!-- ============ CREAR RESERVA ============ -->
+<h2>Nueva reserva</h2>
+<form id="form-reserva">
+  <label>Nombre del cliente</label>
+  <input type="text" id="cliente_nombre" required>
+
+  <label>Teléfono</label>
+  <input type="text" id="cliente_telefono" required>
+
+  <label>Fecha y hora de inicio</label>
+  <input type="datetime-local" id="fecha_hora_inicio" required>
+  <small>Se convierte automáticamente al formato "YYYY-MM-DD HH:MM" que espera la API.</small>
+
+  <label>Barbero</label>
+  <select id="barbero_id" required></select>
+
+  <label>Servicio</label>
+  <select id="servicio_id" required></select>
+
+  <button type="submit">Reservar</button>
+</form>
+<div id="mensaje-reserva"></div>
+
+<!-- ============ LISTA DE RESERVAS ============ -->
+<h2>Reservas</h2>
+<button id="btn-recargar-reservas">Recargar reservas</button>
+<ul id="lista-reservas"><li>Cargando...</li></ul>
+
+<script>
+const API_URL = "http://127.0.0.1:8000"; // cambia el puerto si usas otro
+
+// -------------------------------------------------------------------------
+// Utilidad: convierte el valor de <input type="datetime-local"> (que trae
+// una "T" en medio, ej "2026-08-01T10:00") al formato que espera tu API
+// ("2026-08-01 10:00", con espacio, sin segundos).
+// -------------------------------------------------------------------------
+function formatearFecha(valorInput) {
+  return valorInput.replace("T", " ");
+}
+
+// -------------------------------------------------------------------------
+// Cargar servicios: los pinta en la lista Y rellena el <select> del form
+// -------------------------------------------------------------------------
+async function cargarServicios() {
+  const respuesta = await fetch(`${API_URL}/servicios`);
+  const servicios = await respuesta.json();
+
+  const lista = document.getElementById("lista-servicios");
+  const select = document.getElementById("servicio_id");
+  lista.innerHTML = "";
+  select.innerHTML = "";
+
+  servicios.forEach(s => {
+    const li = document.createElement("li");
+    li.textContent = `${s.nombre} - ${s.duracion_minutos} min - ${s.precio}€`;
+    lista.appendChild(li);
+
+    const option = document.createElement("option");
+    option.value = s.id;
+    option.textContent = `${s.nombre} (${s.duracion_minutos} min)`;
+    select.appendChild(option);
+  });
+}
+
+// -------------------------------------------------------------------------
+// Cargar barberos: misma idea que servicios
+// -------------------------------------------------------------------------
+async function cargarBarberos() {
+  const respuesta = await fetch(`${API_URL}/barberos`);
+  const barberos = await respuesta.json();
+
+  const lista = document.getElementById("lista-barberos");
+  const select = document.getElementById("barbero_id");
+  lista.innerHTML = "";
+  select.innerHTML = "";
+
+  barberos.forEach(b => {
+    const li = document.createElement("li");
+    li.textContent = `${b.nombre} - ${b.telefono}`;
+    lista.appendChild(li);
+
+    const option = document.createElement("option");
+    option.value = b.id;
+    option.textContent = b.nombre;
+    select.appendChild(option);
+  });
+}
+
+// -------------------------------------------------------------------------
+// Cargar reservas y pintarlas, con botón de cancelar por cada una
+// -------------------------------------------------------------------------
+async function cargarReservas() {
+  const respuesta = await fetch(`${API_URL}/reservas`);
+  const reservas = await respuesta.json();
+
+  const lista = document.getElementById("lista-reservas");
+  lista.innerHTML = "";
+
+  if (reservas.length === 0) {
+    lista.innerHTML = "<li>No hay reservas todavía.</li>";
+    return;
+  }
+
+  reservas.forEach(r => {
+    const li = document.createElement("li");
+    if (r.estado === "cancelada") li.classList.add("cancelada");
+
+    li.innerHTML = `
+      <strong>#${r.id}</strong> - ${r.cliente_nombre} (${r.cliente_telefono})<br>
+      ${r.fecha_hora_inicio} → ${r.fecha_hora_fin}<br>
+      Barbero: ${r.barbero_id} | Servicio: ${r.servicio_id} | Estado: <b>${r.estado}</b>
+    `;
+
+    if (r.estado !== "cancelada") {
+      const btnCancelar = document.createElement("button");
+      btnCancelar.textContent = "Cancelar";
+      btnCancelar.onclick = () => cancelarReserva(r.id);
+      li.appendChild(document.createElement("br"));
+      li.appendChild(btnCancelar);
+    }
+
+    lista.appendChild(li);
+  });
+}
+
+// -------------------------------------------------------------------------
+// POST /reservas
+// -------------------------------------------------------------------------
+async function crearReserva(datos) {
+  const respuesta = await fetch(`${API_URL}/reservas`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(datos)
+  });
+
+  const cuerpo = await respuesta.json();
+  const divMensaje = document.getElementById("mensaje-reserva");
+
+  if (respuesta.ok) {
+    divMensaje.className = "mensaje exito";
+    divMensaje.textContent = "Reserva creada correctamente.";
+    cargarReservas(); // refresca la lista para ver la nueva reserva
+  } else {
+    // Aquí es donde ves tus propios 404 / 409 / 422 reflejados en el frontend
+    divMensaje.className = "mensaje error";
+    divMensaje.textContent = `Error ${respuesta.status}: ${cuerpo.detail}`;
+  }
+}
+
+// -------------------------------------------------------------------------
+// PATCH /reservas/{id}/cancelar
+// -------------------------------------------------------------------------
+async function cancelarReserva(id) {
+  const respuesta = await fetch(`${API_URL}/reservas/${id}/cancelar`, {
+    method: "PATCH"
+  });
+
+  if (respuesta.ok) {
+    cargarReservas(); // refresca para ver el cambio de estado
+  } else {
+    const cuerpo = await respuesta.json();
+    alert(`Error al cancelar: ${cuerpo.detail}`);
+  }
+}
+
+// -------------------------------------------------------------------------
+// Eventos
+// -------------------------------------------------------------------------
+document.getElementById("form-reserva").addEventListener("submit", (evento) => {
+  evento.preventDefault(); // evita que el navegador recargue la página
+
+  const datos = {
+    cliente_nombre: document.getElementById("cliente_nombre").value,
+    cliente_telefono: document.getElementById("cliente_telefono").value,
+    fecha_hora_inicio: formatearFecha(document.getElementById("fecha_hora_inicio").value),
+    barbero_id: parseInt(document.getElementById("barbero_id").value),
+    servicio_id: parseInt(document.getElementById("servicio_id").value)
+  };
+
+  crearReserva(datos);
+});
+
+document.getElementById("btn-recargar-reservas").addEventListener("click", cargarReservas);
+
+// Carga inicial al abrir la página
+cargarServicios();
+cargarBarberos();
+cargarReservas();
+</script>
+
+</body>
+</html>
