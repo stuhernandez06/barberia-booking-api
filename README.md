@@ -1,4 +1,4 @@
-# Sistema de Citas para Barbería
+# API de Reservas - Barbería Local
 Backend de un sistema de reservas para barbería, construido con FastAPI y SQLite.
 
 ## Funcionalidades
