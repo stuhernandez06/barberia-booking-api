@@ -1,5 +1,4 @@
-# Barbería Booking API
-
+# Sistema de Citas para Barbería
 Backend de un sistema de reservas para barbería, construido con FastAPI y SQLite.
 
 ## Funcionalidades
