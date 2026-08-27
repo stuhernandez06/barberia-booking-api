@@ -2,6 +2,7 @@
 Backend de un sistema de reservas para barbería, construido con FastAPI y SQLite.
 
 ## Funcionalidades
-- Consulta de servicios y barberos disponibles
-- Creación de reservas con validación de colisiones de horario
-- Cancelación de reservas
+- API REST para gestión de servicios y barberos
+- Sistema de reservas con detección de colisiones
+- Endpoint de cancelación (soft delete vía estado)
+- Documentación automática con Swagger (/docs)
